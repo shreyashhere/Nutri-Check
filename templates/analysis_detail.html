@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Detail</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 font-sans antialiased">
+
+    <!-- Navbar -->
+    {% include 'navbar.html' %}
+
+    <!-- Main Content Container -->
+    <div class="container mx-auto mt-10 px-4 sm:px-0">
+        <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
+
+            <h2 class="text-xl mb-4 font-semibold">Analysis for Category: {{ analysis.category }}</h2>
+            <p class="text-sm text-gray-600">Analyzed on: {{ analysis.timestamp|date:"F j, Y, g:i a" }}</p>
+            <div class="mt-4">
+                <h3 class="text-lg font-semibold">Result:</h3>
+                <div id="analysisResult"></div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        function parseMarkdown(markdown) {
+            // Convert headers
+            markdown = markdown.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold">$1</h3>');
+            markdown = markdown.replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold">$1</h2>');
+            markdown = markdown.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold">$1</h1>');
+
+            // Convert bold text
+            markdown = markdown.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+            markdown = markdown.replace(/^\s*\+\s(.*$)/gim, '- $1');
+
+            // Convert single asterisks (*) into unordered list dots
+            markdown = markdown.replace(/^\s*\*\s(.*$)/gim, '<li class="list-disc list-inside">$1</li>');
+
+            // Convert line breaks
+            markdown = markdown.replace(/(?!<\/?li>)(\n)/g, '<br>');
+
+            // Remove extra spaces for single lines
+            // markdown = markdown.replace(/<br>\s*<br>/gim, '<br>');
+
+            // Remove <br> tags after </li> tags, except for the last one
+            markdown = markdown.replace(/<\/li><br>(?!<\/li>)/gim, '</li>');
+
+            // Convert text inside single quotes to bold
+            markdown = markdown.replace(/'(.*?)'/gim, '<strong>$1</strong>');
+
+            return markdown.trim();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const analysisResultElement = document.getElementById("analysisResult");
+            const rawResult = `{{ analysis.result|escapejs }}`;
+            const parsedResult = parseMarkdown(rawResult);
+            analysisResultElement.innerHTML = parsedResult;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Navbar -->
+    <nav class="bg-white shadow">
+        <div class="container mx-auto px-40 py-1 flex justify-between items-center">
+            <a href="{% url 'upload' %}" class="cursor-pointer"><img src="{% static 'ingredient_analysis_app/logo.png' %}" class="w-20 h-20" /></a>
+            <div class="flex justify-center gap-8">
+                <a href="{% url 'home' %}" class="inline-block bg-green-600 text-white py-3 px-5 rounded-3xl font-bold">Get Started</a>
+                <a href="{% url 'login'%}" class="inline-block border border-green-600 text-green-600 py-3 px-5 font-bold rounded-3xl">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <div class="flex items-center mt-40 justify-center">
+        <div class="bg-white p-8 shadow-md rounded-lg max-w-md w-full">
+            <!-- Login form -->
+            <form class="space-y-4" action="{% url 'login' %}" method="post">
+                {% csrf_token %}
+                {% if error_message %}
+                <div align="center" style="color: red;">
+                    <h2>{{ error_message }}</h2>
+                </div>
+                {% endif %}
+
+                <h2 class="text-xl font-semibold">Login</h2>
+                <div>
+                    <label for="username" class="block mb-1 font-medium">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username..." class="w-full p-2 border rounded" required>
+                </div>
+
+                <div>
+                    <label for="password" class="block mb-1 font-medium">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password..." class="w-full p-2 border rounded" required>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Login</button>
+            </form>
+
+            <h3 class="mt-4 text-center">
+                Don't have an account? <a href="{% url 'register' %}" class="text-blue-600 hover:underline">Signup here</a>
+            </h3>
+        </div>
+    </div>
+</body>
+</html>

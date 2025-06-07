@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Ingredient Analysis{% endblock %}
+{% load static %}
+
+{% block content %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @-webkit-keyframes rotate {
+        from {
+          -webkit-transform: rotate(0deg);
+        }
+        to {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+
+      .load {
+        width: 100px;
+        height: 100px;
+        margin: 110px auto 0;
+        border: solid 10px #8822aa;
+        border-radius: 50%;
+        border-right-color: transparent;
+        border-bottom-color: transparent;
+        -webkit-transition: all 0.5s ease-in;
+        -webkit-animation-name: rotate;
+        -webkit-animation-duration: 1s;
+        -webkit-animation-iteration-count: infinite;
+        -webkit-animation-timing-function: linear;
+
+        transition: all 0.5s ease-in;
+        animation-name: rotate;
+        animation-duration: 1s;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+      }
+
+    </style>
+  </head>
+
+
+    <!-- How It Works Section -->
+    <div class="flex flex-col min-h-screen  font-sans antialiased">
+    <section class="py-2" id="how-it-works">
+      <div class="container mx-auto">
+        <!-- <p class="text-3xl font-semibold text-center">Basic Steps</p> -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
+          <div class="text-center">
+            <img
+              src="{% static 'ingredient_analysis_app/image1.png' %}"
+              alt="Step 1 Icon"
+              class="mx-auto mb-4 rounded-lg"
+              width="150"
+            />
+            <h3 class="text-xl font-semibold">1. Upload a Photo</h3>
+          </div>
+          <div class="text-center">
+            <img
+              src="{% static 'ingredient_analysis_app/image2.png' %}"
+              alt="Step 2 Icon"
+              class="mx-auto mb-4 rounded-lg"
+              width="150"
+            />
+            <h3 class="text-xl font-semibold">2. Input Your Details</h3>
+          </div>
+          <div class="text-center">
+            <img
+              src="{% static 'ingredient_analysis_app/image3.png' %}"
+              alt="Step 3 Icon"
+              class="mx-auto mb-4 rounded-lg"
+              width="150"
+            />
+            <h3 class="text-xl font-semibold">3. Get Your Analysis</h3>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="flex-grow container mx-auto mt-10 px-4 sm:px-0 mb-10">
+      <div
+        class="w-[63vw] mx-auto bg-white p-8 rounded-lg shadow-md transition-transform transform flex flex-col"
+      >
+        <!-- Introduction Section -->
+        <div class="text-center">
+          <h2 class="text-3xl font-semibold mb-4">
+            Welcome to Ingredient Analysis
+          </h2>
+          <br />
+          <p class="text-gray-700">
+            Upload an image of the ingredient list and enter the product
+            category to analyze its potential health effects and get healthier
+            alternatives.
+          </p>
+        </div>
+
+        <br />
+
+        <!-- Image Upload Section -->
+        <div>
+          <h2 class="text-xl mb-4 font-semibold">Upload Ingredient Image</h2>
+          <div class="flex space-x-4">
+            <input
+              id="ingredientImage"
+              type="file"
+              accept="image/*"
+              class="flex-grow p-2 border border-green-400 rounded-l-md"
+            />
+            <input
+              id="productCategory"
+              type="text"
+              placeholder="Enter Product Name or Category"
+              class="flex-grow p-2 border border-green-400 rounded-md"
+            />
+            <button
+              id="analyzeButton"
+              class="bg-green-600 text-white px-4 py-2 rounded-r-md hover:bg-green-700 transition-colors"
+            >
+              Analyze
+            </button>
+          </div>
+        </div>
+
+        <!-- Section for Loading Circle -->
+        <div style="display: none" id="loading-circle" class="load"></div>
+
+        <!-- Analysis Result Display Section -->
+        <section class="mt-10 flex-grow">
+          <h2 class="text-xl mb-4 font-semibold">Analysis Result</h2>
+          <div id="analysisResult" class="mt-2 text-gray-700 space-y-4">
+            <!-- Analysis result will be displayed here -->
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+    <script>
+      function parseMarkdown(markdown) {
+        // Convert headers
+        markdown = markdown.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold">$1</h3>');
+        markdown = markdown.replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold">$1</h2>');
+        markdown = markdown.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold">$1</h1>');
+
+        // Convert bold text
+        markdown = markdown.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+        markdown = markdown.replace(/^\s*\+\s(.*$)/gim, '- $1');
+
+        // Convert single asterisks (*) into unordered list dots
+        markdown = markdown.replace(/^\s*\*\s(.*$)/gim, '<li class="list-disc list-inside">$1</li>');
+
+        // Convert line breaks
+        markdown = markdown.replace(/(?!<\/?li>)(\n)/g, '<br>');
+
+        // Remove <br> tags after </li> tags, except for the last one
+        markdown = markdown.replace(/<\/li><br>(?!<\/li>)/gim, '</li>');
+
+        // Convert text inside single quotes to bold
+        markdown = markdown.replace(/'(.*?)'/gim, '<strong>$1</strong>');
+
+        return markdown.trim();
+      }
+
+
+      function showClearButton() {
+        if (!document.getElementById("clearButton")) {
+          const clearButton = document.createElement("button");
+          clearButton.id = "clearButton";
+          clearButton.textContent = "Clear";
+          clearButton.className = "bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors absolute top-0 right-0 mt-2 mr-2";
+          clearButton.addEventListener("click", () => {
+        localStorage.removeItem("analysisResult");
+        document.getElementById("analysisResult").innerHTML = "";
+        clearButton.remove();
+          });
+          const analysisResult = document.getElementById("analysisResult");
+          analysisResult.style.position = "relative";
+          analysisResult.appendChild(clearButton);
+        }
+      }
+
+      function analyze() {
+        const ingredientImage = document.getElementById("ingredientImage").files[0];
+        const productCategory = document.getElementById("productCategory").value;
+        const analysisResult = document.getElementById("analysisResult");
+
+        if (ingredientImage && productCategory) {
+          // Show loading circle
+          document.getElementById("loading-circle").style.display = "block";
+          analysisResult.innerHTML = ""; // Clear previous content
+
+          const formData = new FormData();
+          formData.append("image", ingredientImage);
+          formData.append("category", productCategory);
+
+          fetch("/analyze", {
+        method: "POST",
+        body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+        if (data.result) {
+          const formattedResult = parseMarkdown(data.result);
+          analysisResult.innerHTML = `${formattedResult}`;
+          localStorage.setItem("analysisResult", data.result);
+          showClearButton();
+        } else {
+          analysisResult.innerHTML = `<p class="text-red-500">No analysis result available. Please try again.</p>`;
+        }
+          })
+          .catch(error => {
+        console.error("Error occurred:", error);
+        analysisResult.innerHTML = `<p class="text-red-500">Please try again later</p>`;
+          })
+          .finally(() => {
+        // Hide loading circle
+        document.getElementById("loading-circle").style.display = "none";
+          });
+        } else {
+          alert("Please upload an image and enter a product category.");
+        }
+      }
+
+      document.getElementById("analyzeButton").addEventListener("click", analyze);
+
+      document.getElementById("productCategory").addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+          analyze();
+        }
+      });
+
+      // Load cached result if available
+      document.addEventListener("DOMContentLoaded", () => {
+        const cachedResult = localStorage.getItem("analysisResult");
+        if (cachedResult) {
+          const analysisResult = document.getElementById("analysisResult");
+          const formattedResult = parseMarkdown(cachedResult);
+          analysisResult.innerHTML = `${formattedResult}`;
+          showClearButton();
+        }
+      });
+
+      </script>
+{% endblock %}
