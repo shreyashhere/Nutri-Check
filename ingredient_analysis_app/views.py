@@ -105,38 +105,51 @@ class OCRReader:
 
 ocr_reader = OCRReader()
 
-@csrf_exempt  # Temporarily disable CSRF protection for simplicity; enable it in production
+@csrf_exempt
 def analyze_ingredients(request):
     if request.method == "POST":
         image = request.FILES.get("image")
         category = request.POST.get("category")
 
         if image and category:
-            img = Image.open(image)
-            img = np.array(img)
-
-            # Use the OCRReader class
-            results = ocr_reader.read_text(img)
-            import pdb; pdb.set_trace()
-            text_only = [item[1] for item in results]
-            try:
-                allergies = request.user.medicalhistory.allergies.split(',')
-                diseases = request.user.medicalhistory.diseases.split(',')
-            except:
-                allergies="No allergy"
-                diseases="No disease"
-            
-            chain = prompt_template | model | parser
-            llm_response = chain.invoke(
-                {"list_of_ingredients": text_only, "category": category, "allergies": allergies, "diseases": diseases}
-            )
+            # Save the uploaded image
             analysis = IngredientAnalysis.objects.create(
-                user=request.user, category=category, result=llm_response
+                user=request.user, 
+                category=category, 
+                image=image,
+                result=""  # Will be updated after processing
             )
 
-            analysis.save()
-            # Return the result as JSON
-            return JsonResponse({"result": llm_response})
+            try:
+                img = Image.open(image)
+                img = np.array(img)
+
+                # Use the OCRReader class
+                results = ocr_reader.read_text(img)
+                text_only = [item for item in results if isinstance(item, str)]
+                
+                try:
+                    allergies = request.user.medicalhistory.allergies.split(',') if hasattr(request.user, 'medicalhistory') and request.user.medicalhistory.allergies else ["No allergy"]
+                    diseases = request.user.medicalhistory.diseases.split(',') if hasattr(request.user, 'medicalhistory') and request.user.medicalhistory.diseases else ["No disease"]
+                except:
+                    allergies = ["No allergy"]
+                    diseases = ["No disease"]
+                
+                chain = prompt_template | model | parser
+                llm_response = chain.invoke(
+                    {"list_of_ingredients": text_only, "category": category, "allergies": allergies, "diseases": diseases}
+                )
+                
+                # Update the analysis with the result
+                analysis.result = llm_response
+                analysis.save()
+
+                # Return the result as JSON
+                return JsonResponse({"result": llm_response, "analysis_id": analysis.id})
+
+            except Exception as e:
+                analysis.delete()  # Clean up if processing fails
+                return JsonResponse({"error": f"Processing failed: {str(e)}"}, status=500)
 
         return JsonResponse({"error": "Invalid input"}, status=400)
 
