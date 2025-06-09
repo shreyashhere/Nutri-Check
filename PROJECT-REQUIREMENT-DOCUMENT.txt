@@ -34,4 +34,12 @@ Version-5:
 Version-6:
     1. in register and login screen, dont use the navbar.html file for navbar, use their custom one which is contain button of login, register only.
 
+Version-7:
+    1. use local storage caching for product category, image uploaded and preview as well in upload.html page.
+    2. analysis.image in history.html page and img in upload.html also not visible in recent analyses section. fix it.
+    3. my docker-image taking much size about 3.52GB space. can you optimise it more efficient way possible .
 
+Version-8:
+    1. Choosen file in upload.html is not cache locally. in choose file section shows no file Choosen when i came back from history page. i see product preview and category is stored in local storage which is good.
+    2. in history page and analysis_detail page dont see the images. solve this issue.
+    3. my docker-image taking much size about 3.52GB space. can you optimise it more efficient way possible .you have to modify my Dockerfile which exist in project.

@@ -38,29 +38,49 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
 
-      .analysis-content h1, .analysis-content h2, .analysis-content h3 {
-        margin: 1rem 0 0.5rem 0;
+      .analysis-content h1,
+      .analysis-content h2,
+      .analysis-content h3 {
+        margin: 1.5rem 0 0.75rem 0;
         font-weight: 600;
+        color: #1f2937;
       }
 
-      .analysis-content ul, .analysis-content ol {
-        margin: 0.5rem 0;
+      .analysis-content h1 {
+        font-size: 1.75rem;
+      }
+
+      .analysis-content h2 {
+        font-size: 1.5rem;
+      }
+
+      .analysis-content h3 {
+        font-size: 1.25rem;
+      }
+
+      .analysis-content ul,
+      .analysis-content ol {
+        margin: 0.75rem 0;
         padding-left: 1.5rem;
       }
 
       .analysis-content li {
-        margin: 0.25rem 0;
-        line-height: 1.6;
+        margin: 0.5rem 0;
+        line-height: 1.7;
       }
 
       .analysis-content strong {
         color: #1f2937;
         font-weight: 600;
+        background: rgba(59, 130, 246, 0.1);
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
       }
 
       .analysis-content p {
-        margin: 0.5rem 0;
-        line-height: 1.6;
+        margin: 0.75rem 0;
+        line-height: 1.7;
+        color: #374151;
       }
 
       /* History Sidebar Styles */
@@ -214,54 +234,146 @@
                 <i class="fas fa-trash mr-1"></i>Clear
               </button>
             </div>
-            <div id="analysisResult" class="analysis-content text-gray-700"></div>
+            <div id="analysisResult" class="analysis-content prose prose-lg max-w-none bg-gray-50 p-6 rounded-lg"></div>
+            
+            <div class="mt-6 flex space-x-4">
+              <button onclick="downloadAnalysis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center">
+                <i class="fas fa-download mr-2"></i>
+                Export Results
+              </button>
+              <a href="{% url 'history' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-300 flex items-center">
+                <i class="fas fa-history mr-2"></i>
+                View History
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
+      // Local storage keys
+      const STORAGE_KEYS = {
+        PRODUCT_CATEGORY: 'ingredientAnalysis_productCategory',
+        IMAGE_DATA: 'ingredientAnalysis_imageData',
+        IMAGE_NAME: 'ingredientAnalysis_imageName',
+        IMAGE_FILE: 'ingredientAnalysis_imageFile',
+        ANALYSIS_RESULT: 'ingredientAnalysis_result'
+      };
+
       // Enhanced markdown parser
       function parseMarkdown(markdown) {
         // Convert headers with icons
-        markdown = markdown.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold text-gray-800 mt-6 mb-3 border-l-4 border-blue-500 pl-3">$1</h3>');
-        markdown = markdown.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold text-gray-800 mt-6 mb-4 border-l-4 border-green-500 pl-3">$1</h2>');
-        markdown = markdown.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold text-gray-800 mt-6 mb-4">$1</h1>');
+        markdown = markdown.replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold text-gray-800 mt-6 mb-3 border-l-4 border-blue-500 pl-4 bg-blue-50 py-2 rounded-r-lg"><i class="fas fa-angle-right mr-2 text-blue-500"></i>$1</h3>');
+        markdown = markdown.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold text-gray-800 mt-8 mb-4 border-l-4 border-green-500 pl-4 bg-green-50 py-3 rounded-r-lg"><i class="fas fa-chevron-right mr-2 text-green-500"></i>$1</h2>');
+        markdown = markdown.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold text-gray-800 mt-8 mb-5 border-l-4 border-purple-500 pl-4 bg-purple-50 py-3 rounded-r-lg">$1</h1>');
 
-        // Convert bold text
-        markdown = markdown.replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold text-gray-900">$1</strong>');
-        
-        // Convert lists
-        markdown = markdown.replace(/^\s*[\*\-\+]\s(.*$)/gim, '<li class="flex items-start mb-2"><i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i><span>$1</span></li>');
-        
-        // Wrap consecutive list items in ul
-        markdown = markdown.replace(/(<li.*?<\/li>\s*)+/gim, '<ul class="space-y-1 mb-4">$&</ul>');
-        
-        // Convert line breaks
-        markdown = markdown.replace(/\n\n/g, '</p><p class="mb-3">');
-        markdown = '<p class="mb-3">' + markdown + '</p>';
-        
-        // Convert quotes to styled text
-        markdown = markdown.replace(/'(.*?)'/gim, '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">$1</span>');
-        
-        // Add warning symbols
-        markdown = markdown.replace(/⚠️/g, '<i class="fas fa-exclamation-triangle text-yellow-500"></i>');
-        markdown = markdown.replace(/❗/g, '<i class="fas fa-exclamation-circle text-red-500"></i>');
-        
+        // Enhanced bold text
+        markdown = markdown.replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold text-gray-900 bg-yellow-100 px-2 py-1 rounded">$1</strong>');
+
+        // Enhanced list items
+        markdown = markdown.replace(/^\s*[\*\-\+]\s(.*$)/gim, '<li class="flex items-start mb-3 bg-gray-50 p-3 rounded-lg"><i class="fas fa-check-circle text-green-500 mt-1 mr-3 flex-shrink-0"></i><span>$1</span></li>');
+
+        // Wrap lists
+        markdown = markdown.replace(/(<li.*?<\/li>\s*)+/gim, '<ul class="space-y-2 mb-6">$&</ul>');
+
+        // Enhanced paragraphs
+        markdown = markdown.replace(/\n\n/g, '</p><p class="mb-4 text-gray-700 leading-relaxed">');
+        markdown = '<p class="mb-4 text-gray-700 leading-relaxed">' + markdown + '</p>';
+
+        // Enhanced quotes
+        markdown = markdown.replace(/'(.*?)'/gim, '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium border border-blue-200">$1</span>');
+
+        // Warning symbols
+        markdown = markdown.replace(/⚠️/g, '<i class="fas fa-exclamation-triangle text-yellow-500 text-lg"></i>');
+        markdown = markdown.replace(/❗/g, '<i class="fas fa-exclamation-circle text-red-500 text-lg"></i>');
+
         return markdown.trim();
       }
 
       // Progress bar state management
       let analysisCompleted = false;
 
-      // History sidebar functionality
+      // Enhanced file input restoration
+      function restoreFileInput() {
+        const cachedImageData = localStorage.getItem(STORAGE_KEYS.IMAGE_DATA);
+        const cachedImageName = localStorage.getItem(STORAGE_KEYS.IMAGE_NAME);
+        const cachedFileData = localStorage.getItem(STORAGE_KEYS.IMAGE_FILE);
+        
+        if (cachedImageData && cachedImageName && cachedFileData) {
+          // Create a new File object from cached data
+          try {
+            const byteString = atob(cachedFileData.split(',')[1]);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const blob = new Blob([ab], { type: 'image/jpeg' });
+            const file = new File([blob], cachedImageName, { type: 'image/jpeg' });
+            
+            // Create a new DataTransfer object to set the file input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById("ingredientImage").files = dt.files;
+            
+            // Show preview
+            const preview = document.getElementById("imagePreview");
+            const previewContainer = document.getElementById("imagePreviewContainer");
+            preview.src = cachedImageData;
+            previewContainer.classList.remove("hidden");
+            document.getElementById("progressBar").style.width = "75%";
+          } catch (error) {
+            console.warn('Failed to restore file input:', error);
+            // Fallback to just showing preview
+            const preview = document.getElementById("imagePreview");
+            const previewContainer = document.getElementById("imagePreviewContainer");
+            preview.src = cachedImageData;
+            previewContainer.classList.remove("hidden");
+            document.getElementById("progressBar").style.width = "75%";
+          }
+        }
+      }
+
+      // Load cached data on page load
+      function loadCachedData() {
+        // Load cached product category
+        const cachedCategory = localStorage.getItem(STORAGE_KEYS.PRODUCT_CATEGORY);
+        if (cachedCategory) {
+          document.getElementById("productCategory").value = cachedCategory;
+        }
+
+        // Restore file input and image preview
+        restoreFileInput();
+
+        // Load cached analysis result
+        const cachedResult = localStorage.getItem(STORAGE_KEYS.ANALYSIS_RESULT);
+        if (cachedResult) {
+          const formattedResult = parseMarkdown(cachedResult);
+          document.getElementById("analysisResult").innerHTML = formattedResult;
+          document.getElementById("results-section").classList.remove("hidden");
+          analysisCompleted = true;
+          document.getElementById("progressBar").style.width = "100%";
+        }
+      }
+
+      // Save data to local storage
+      function saveToLocalStorage(key, value) {
+        try {
+          localStorage.setItem(key, value);
+        } catch (error) {
+          console.warn('Local storage save failed:', error);
+        }
+      }
+
+      // History sidebar functionality with improved image loading
       function loadHistoryData() {
         fetch('/history')
           .then(response => response.text())
           .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const historyItems = doc.querySelectorAll('.space-y-6 > a');
+            const historyItems = doc.querySelectorAll('.space-y-6 > a, .grid > a');
             
             const historyContent = document.getElementById('historyContent');
             
@@ -276,18 +388,37 @@
 
             let historyHtml = '';
             historyItems.forEach((item, index) => {
-              if (index < 5) { // Show only recent 5 items
+              if (index < 5) {
                 const img = item.querySelector('img');
-                const category = item.querySelector('h3').textContent.trim();
-                const date = item.querySelector('p').textContent.trim();
+                const titleElement = item.querySelector('h3, .font-semibold');
+                const dateElement = item.querySelector('p, .text-gray-500');
+                
+                const category = titleElement ? titleElement.textContent.trim() : 'Analysis';
+                const date = dateElement ? dateElement.textContent.trim() : 'Recent';
                 const href = item.getAttribute('href');
                 
+                // Enhanced image URL construction
+                let imgSrc = '';
+                if (img && img.src && !img.src.includes('None') && !img.src.includes('null')) {
+                  imgSrc = img.src.startsWith('/') ? window.location.origin + img.src : img.src;
+                } else {
+                  const analysisId = href.match(/\/analysis\/(\d+)/) || href.match(/analysis_detail\/(\d+)/);
+                  if (analysisId) {
+                    imgSrc = `${window.location.origin}/media/analysis_images/analysis_${analysisId[1]}.jpg`;
+                  }
+                }
+                
                 historyHtml += `
-                  <div class="history-item p-3 mb-3 border border-gray-200 rounded-lg cursor-pointer" onclick="window.location.href='${href}'">
+                  <div class="history-item p-3 mb-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onclick="window.location.href='${href}'">
                     <div class="flex items-center space-x-3">
                       <div class="flex-shrink-0">
-                        ${img ? `<img src="${img.src}" alt="Analysis" class="w-12 h-12 object-cover rounded-lg">` : 
-                              '<div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><i class="fas fa-image text-gray-400"></i></div>'}
+                        ${imgSrc ? 
+                          `<img src="${imgSrc}" alt="Analysis" class="w-12 h-12 object-cover rounded-lg" 
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                           <div class="w-12 h-12 bg-gray-100 rounded-lg items-center justify-center" style="display:none;">
+                             <i class="fas fa-image text-gray-400"></i>
+                           </div>` : 
+                          '<div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><i class="fas fa-image text-gray-400"></i></div>'}
                       </div>
                       <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate">${category}</p>
@@ -310,7 +441,7 @@
           });
       }
 
-      // Image preview functionality with improved progress
+      // Enhanced image preview functionality with complete file caching
       document.getElementById("ingredientImage").addEventListener("change", function(e) {
         const file = e.target.files[0];
         const previewContainer = document.getElementById("imagePreviewContainer");
@@ -324,10 +455,17 @@
           
           const reader = new FileReader();
           reader.onload = function(e) {
-            preview.src = e.target.result;
+            const imageData = e.target.result;
+            preview.src = imageData;
             previewContainer.classList.remove("hidden");
+            
+            // Cache complete file data including binary content
+            saveToLocalStorage(STORAGE_KEYS.IMAGE_DATA, imageData);
+            saveToLocalStorage(STORAGE_KEYS.IMAGE_NAME, file.name);
+            saveToLocalStorage(STORAGE_KEYS.IMAGE_FILE, imageData);
+            
             if (!analysisCompleted) {
-              progressBar.style.width = "75%"; // Partial progress for image load
+              progressBar.style.width = "75%";
             }
           };
           reader.readAsDataURL(file);
@@ -335,7 +473,16 @@
           previewContainer.classList.add("hidden");
           progressBar.style.width = "0%";
           analysisCompleted = false;
+          // Clear cached file data
+          localStorage.removeItem(STORAGE_KEYS.IMAGE_DATA);
+          localStorage.removeItem(STORAGE_KEYS.IMAGE_NAME);
+          localStorage.removeItem(STORAGE_KEYS.IMAGE_FILE);
         }
+      });
+
+      // Enhanced product category input with caching
+      document.getElementById("productCategory").addEventListener("input", function(e) {
+        saveToLocalStorage(STORAGE_KEYS.PRODUCT_CATEGORY, e.target.value);
       });
 
       function analyze() {
@@ -368,7 +515,7 @@
           if (data.result) {
             const formattedResult = parseMarkdown(data.result);
             analysisResult.innerHTML = formattedResult;
-            localStorage.setItem("analysisResult", data.result);
+            saveToLocalStorage(STORAGE_KEYS.ANALYSIS_RESULT, data.result);
             resultsSection.classList.remove("hidden");
             analysisCompleted = true; // Mark analysis as completed
             // Keep progress bar at 100% since analysis is complete
@@ -432,24 +579,51 @@
       });
 
       document.getElementById("clearButton").addEventListener("click", () => {
-        localStorage.removeItem("analysisResult");
+        // Clear all cached data including file data
+        localStorage.removeItem(STORAGE_KEYS.ANALYSIS_RESULT);
+        localStorage.removeItem(STORAGE_KEYS.IMAGE_DATA);
+        localStorage.removeItem(STORAGE_KEYS.IMAGE_NAME);
+        localStorage.removeItem(STORAGE_KEYS.IMAGE_FILE);
+        localStorage.removeItem(STORAGE_KEYS.PRODUCT_CATEGORY);
+        
         document.getElementById("analysisResult").innerHTML = "";
         document.getElementById("results-section").classList.add("hidden");
         document.getElementById("imagePreviewContainer").classList.add("hidden");
         document.getElementById("ingredientImage").value = "";
         document.getElementById("productCategory").value = "";
         document.getElementById("progressBar").style.width = "0%";
-        analysisCompleted = false; // Reset completion state
+        analysisCompleted = false;
       });
 
-      // Load cached result
+      // Load cached data on page load
       document.addEventListener("DOMContentLoaded", () => {
-        const cachedResult = localStorage.getItem("analysisResult");
-        if (cachedResult) {
-          const formattedResult = parseMarkdown(cachedResult);
-          document.getElementById("analysisResult").innerHTML = formattedResult;
-          document.getElementById("results-section").classList.remove("hidden");
-        }
+        loadCachedData();
+      });
+
+      // Download analysis results as text file
+      function downloadAnalysis() {
+          const analysisText = document.getElementById('analysisResult').innerText;
+          const blob = new Blob([analysisText], { type: 'text/plain' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `analysis_results_${new Date().toISOString().split('T')[0]}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+      }
+
+      // Initialize markdown parsing on page load
+      document.addEventListener("DOMContentLoaded", () => {
+          const analysisResultElement = document.getElementById("analysisResult");
+          if (analysisResultElement) {
+              const rawResult = `{{ analysis_result|escapejs }}`;
+              if (rawResult) {
+                  const parsedResult = parseMarkdown(rawResult);
+                  analysisResultElement.innerHTML = parsedResult;
+              }
+          }
       });
     </script>
 {% endblock %}
