@@ -141,3 +141,6 @@ LOGOUT_REDIRECT_URL = 'home'  # Redirects to the login page after logout
 # Add crispy forms settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'

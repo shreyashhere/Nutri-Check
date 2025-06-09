@@ -16,7 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from . import settings
-from django.urls import path , include
+from django.urls import path , include, re_path
+from django.conf import settings
+from django.conf.urls.static import static
+
+from django.views.static import serve
 # import ingredient_analysis_app 
 
 
@@ -25,4 +29,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include('medical_history.urls')),
     path('',include('ingredient_analysis_app.urls')),
+    
+    # Explicitly serve media files in all environments
+    re_path(r'^media/(?P<path>.*)$', serve, {
+        'document_root': settings.MEDIA_ROOT,
+    }),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
