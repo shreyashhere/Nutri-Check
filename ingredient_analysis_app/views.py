@@ -30,21 +30,42 @@ load_dotenv()
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
-# Initialize your model
-model = ChatGroq(model="llama3-8b-8192")
+# Lazy initialization of API keys - only validate when actually needed
+def get_api_keys():
+    langchain_key = os.getenv("LANGCHAIN_API_KEY")
+    groq_key = os.getenv("GROQ_API_KEY")
+    
+    if not groq_key:
+        raise ValueError("GROQ_API_KEY environment variable is required")
+    
+    if not langchain_key:
+        raise ValueError("LANGCHAIN_API_KEY environment variable is required")
+    
+    os.environ["LANGCHAIN_API_KEY"] = langchain_key
+    os.environ["GROQ_API_KEY"] = groq_key
+    
+    return groq_key, langchain_key
+
+# Initialize model only when needed
+model = None
 parser = StrOutputParser()
 
+def get_model():
+    global model
+    if model is None:
+        get_api_keys()  # This will validate keys
+        model = ChatGroq(model="llama3-8b-8192")
+    return model
+
 # Create the prompt template
-system_template = '''As a health analysis expert, analyze {category} ingredients while considering with STRICT adherence to:
+system_template = '''As a health analysis expert, analyze {category} ingredients from this list: {list_of_ingredients} while considering with STRICT adherence to:
 - User allergies: {allergies}
 - User medical history: {diseases}
 
 **Structured Analysis Framework:**
 
-1. **Key Ingredient Analysis** (Focus on 3-5 most significant):
+1. **Key Ingredient Analysis** (Focus on 4-5 most significant):
    For each impactful ingredient:
    - Primary use in {category}
    - Benefits (if any)
@@ -80,7 +101,7 @@ def home(request):
 
 @login_required
 def upload(request):
-    return render(request, "upload.html")
+    return render(request, "ingredient_analysis_app/upload.html")
 
 
 class OCRReader:
@@ -128,16 +149,30 @@ def analyze_ingredients(request):
                 results = ocr_reader.read_text(img)
                 text_only = [item for item in results if isinstance(item, str)]
                 
+                # Add debugging
+                print(f"OCR Results: {text_only}")
+                
                 try:
                     allergies = request.user.medicalhistory.allergies.split(',') if hasattr(request.user, 'medicalhistory') and request.user.medicalhistory.allergies else ["No allergy"]
                     diseases = request.user.medicalhistory.diseases.split(',') if hasattr(request.user, 'medicalhistory') and request.user.medicalhistory.diseases else ["No disease"]
-                except:
+                except Exception as e:
+                    print(f"Medical history error: {e}")
                     allergies = ["No allergy"]
                     diseases = ["No disease"]
                 
-                chain = prompt_template | model | parser
+                # Join the text list into a string for better processing
+                ingredients_text = ", ".join(text_only) if text_only else "No text detected"
+                
+                # Get model with API key validation
+                model_instance = get_model()
+                chain = prompt_template | model_instance | parser
                 llm_response = chain.invoke(
-                    {"list_of_ingredients": text_only, "category": category, "allergies": allergies, "diseases": diseases}
+                    {
+                        "list_of_ingredients": ingredients_text, 
+                        "category": category, 
+                        "allergies": ", ".join(allergies), 
+                        "diseases": ", ".join(diseases)
+                    }
                 )
                 
                 # Update the analysis with the result
@@ -148,6 +183,7 @@ def analyze_ingredients(request):
                 return JsonResponse({"result": llm_response, "analysis_id": analysis.id})
 
             except Exception as e:
+                print(f"Processing error: {str(e)}")  # Add debugging
                 analysis.delete()  # Clean up if processing fails
                 return JsonResponse({"error": f"Processing failed: {str(e)}"}, status=500)
 

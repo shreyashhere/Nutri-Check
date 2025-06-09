@@ -45,13 +45,19 @@
       <a href="{% url 'analysis_detail' analysis.id %}" class="block group">
         <div class="border border-gray-200 rounded-xl shadow-md p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-300 bg-white">
           <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Enhanced Image Section with error handling -->
+            <!-- Enhanced Image Section with improved error handling -->
             <div class="flex-shrink-0">
               {% if analysis.image %}
               <div class="relative group-hover:scale-105 transition-transform duration-300">
                 <img src="{{ analysis.image.url }}" alt="Analysis Image" 
                      class="w-full lg:w-40 h-32 object-cover rounded-lg shadow-md ring-2 ring-gray-200 group-hover:ring-blue-300 transition-all duration-300"
-                     onerror="this.parentElement.innerHTML='<div class=\'w-full lg:w-40 h-32 bg-gradient-to-br from-red-100 to-red-200 rounded-lg flex items-center justify-center\'><div class=\'text-center\'><i class=\'fas fa-exclamation-triangle text-2xl text-red-400 mb-1\'></i><p class=\'text-xs text-red-500 font-medium\'>Image not found</p></div></div>'">
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-full lg:w-40 h-32 bg-gradient-to-br from-red-100 to-red-200 rounded-lg items-center justify-center" style="display:none;">
+                  <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-400 mb-1"></i>
+                    <p class="text-xs text-red-500 font-medium">Image not found</p>
+                  </div>
+                </div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <i class="fas fa-search-plus mr-1"></i>View
@@ -145,5 +151,55 @@
   }
 }
 </style>
+
+<script>
+// Enhanced image loading with multiple fallback strategies
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('img[src*="media"]');
+    
+    images.forEach(img => {
+        // Add loading attribute for better performance
+        img.loading = 'lazy';
+        
+        // Enhanced error handling with multiple fallback attempts
+        img.addEventListener('error', function() {
+            console.log('Image failed to load:', this.src);
+            
+            // Try alternative URL patterns
+            const originalSrc = this.src;
+            const analysisId = originalSrc.match(/analysis[_\/](\d+)/);
+            
+            if (analysisId && !this.dataset.retryAttempted) {
+                this.dataset.retryAttempted = 'true';
+                
+                // Try different URL patterns
+                const alternatives = [
+                    `/media/analysis_images/${analysisId[1]}.jpg`,
+                    `/media/analysis_images/analysis_${analysisId[1]}.jpg`,
+                    `/media/images/analysis_${analysisId[1]}.jpg`,
+                    `/static/images/placeholder.jpg`
+                ];
+                
+                let retryIndex = 0;
+                const tryNextSource = () => {
+                    if (retryIndex < alternatives.length) {
+                        this.src = window.location.origin + alternatives[retryIndex];
+                        retryIndex++;
+                    } else {
+                        // Final fallback - hide image and show placeholder
+                        this.style.display = 'none';
+                        if (this.nextElementSibling) {
+                            this.nextElementSibling.style.display = 'flex';
+                        }
+                    }
+                };
+                
+                this.addEventListener('error', tryNextSource, { once: true });
+                tryNextSource();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
 
