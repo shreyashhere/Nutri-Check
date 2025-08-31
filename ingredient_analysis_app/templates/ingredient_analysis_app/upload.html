@@ -6,6 +6,16 @@
 {% block content %}
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- RAG Status Indicator -->
+    <div id="ragStatusIndicator" class="fixed top-4 right-4 z-50">
+        <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+            <div class="flex items-center space-x-2">
+                <div id="ragStatusDot" class="w-3 h-3 rounded-full bg-gray-400"></div>
+                <span id="ragStatusText" class="text-sm font-medium text-gray-600">Checking RAG...</span>
+            </div>
+        </div>
+    </div>
     <style>
       @keyframes rotate {
         from { transform: rotate(0deg); }
@@ -506,7 +516,7 @@
         formData.append("image", ingredientImage);
         formData.append("category", productCategory);
 
-        fetch("/analyze", {
+        fetch("/analyze-rag", {
           method: "POST",
           body: formData,
         })
@@ -514,7 +524,22 @@
         .then(data => {
           if (data.result) {
             const formattedResult = parseMarkdown(data.result);
-            analysisResult.innerHTML = formattedResult;
+            
+            // Add RAG status information
+            let ragStatus = '';
+            if (data.rag_used !== undefined) {
+              ragStatus = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div class="flex items-center">
+                    <i class="fas ${data.rag_used ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'} mr-2"></i>
+                    <span class="text-blue-700 font-medium">RAG Status: ${data.rag_used ? 'Active' : 'Inactive'}</span>
+                  </div>
+                  ${data.rag_used ? `<div class="text-sm text-blue-600 mt-1">📚 Documents retrieved: ${data.documents_retrieved || 0}</div>` : ''}
+                </div>
+              `;
+            }
+            
+            analysisResult.innerHTML = ragStatus + formattedResult;
             saveToLocalStorage(STORAGE_KEYS.ANALYSIS_RESULT, data.result);
             resultsSection.classList.remove("hidden");
             analysisCompleted = true; // Mark analysis as completed
@@ -595,9 +620,38 @@
         analysisCompleted = false;
       });
 
+      // Check RAG status
+      function checkRAGStatus() {
+        fetch("/rag-status")
+          .then(response => response.json())
+          .then(data => {
+            const statusDot = document.getElementById("ragStatusDot");
+            const statusText = document.getElementById("ragStatusText");
+            
+            if (data.rag_available && data.vectorstore_loaded) {
+              statusDot.className = "w-3 h-3 rounded-full bg-green-500";
+              statusText.textContent = "RAG Active";
+              statusText.className = "text-sm font-medium text-green-600";
+            } else {
+              statusDot.className = "w-3 h-3 rounded-full bg-red-500";
+              statusText.textContent = "RAG Inactive";
+              statusText.className = "text-sm font-medium text-red-600";
+            }
+          })
+          .catch(error => {
+            console.error("Error checking RAG status:", error);
+            const statusDot = document.getElementById("ragStatusDot");
+            const statusText = document.getElementById("ragStatusText");
+            statusDot.className = "w-3 h-3 rounded-full bg-red-500";
+            statusText.textContent = "RAG Error";
+            statusText.className = "text-sm font-medium text-red-600";
+          });
+      }
+
       // Load cached data on page load
       document.addEventListener("DOMContentLoaded", () => {
         loadCachedData();
+        checkRAGStatus(); // Check RAG status when page loads
       });
 
       // Download analysis results as text file

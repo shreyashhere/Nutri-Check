@@ -17,7 +17,8 @@ from .models import IngredientAnalysis
 from PIL import Image
 import numpy as np
 import os
-from langchain_groq import ChatGroq
+# Removed langchain_groq import to avoid Pydantic v2 compatibility issues
+# from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 # import easyocr
@@ -51,12 +52,13 @@ def get_api_keys():
 model = None
 parser = StrOutputParser()
 
-def get_model():
-    global model
-    if model is None:
-        get_api_keys()  # This will validate keys
-        model = ChatGroq(model="llama3-8b-8192")
-    return model
+# Commented out due to Pydantic v2 compatibility issues
+# def get_model():
+#     global model
+#     if model is None:
+#         get_api_keys()  # This will validate keys
+#         model = ChatGroq(model="llama3-8b-8192")
+#     return model
 
 # Create the prompt template
 system_template = '''As a health analysis expert, analyze {category} ingredients from this list: {list_of_ingredients} while considering with STRICT adherence to:
